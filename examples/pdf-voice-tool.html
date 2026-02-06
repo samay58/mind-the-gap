@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDF Voice Tool — Codebase Map</title>
+<style>
+/* ============================================================================
+   LONDON TUBE DESIGN SYSTEM
+   ============================================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg: #F4F1EC;
+  --bg-alt: #EDE8E0;
+  --fg: #1C1C1C;
+  --fg-muted: #6B6B6B;
+  --fg-dim: #A0A0A0;
+  --panel-bg: #FAFAF7;
+  --panel-border: #D4D0C8;
+  --grid-color: rgba(0,0,0,0.04);
+  --search-bg: #FFFFFF;
+  --search-border: #C8C4BC;
+  --badge-bg: #E8E4DC;
+  --badge-fg: #555;
+  --tooltip-bg: #1C1C1C;
+  --tooltip-fg: #F4F1EC;
+  --station-fill: #FAFAF7;
+  --station-stroke: #1C1C1C;
+  --highlight-glow: rgba(255,200,0,0.3);
+
+  --line-width: 8px;
+  --station-r: 11;
+  --interchange-r: 15;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  --transition-fast: 0.15s ease;
+  --transition-med: 0.3s ease;
+}
+
+[data-theme="dark"] {
+  --bg: #0E1621;
+  --bg-alt: #162030;
+  --fg: #E8E4DC;
+  --fg-muted: #8899AA;
+  --fg-dim: #556677;
+  --panel-bg: #162030;
+  --panel-border: #2A3A4E;
+  --grid-color: rgba(255,255,255,0.03);
+  --search-bg: #1A2636;
+  --search-border: #2A3A4E;
+  --badge-bg: #1A2636;
+  --badge-fg: #8899AA;
+  --tooltip-bg: #E8E4DC;
+  --tooltip-fg: #0E1621;
+  --station-fill: #162030;
+  --station-stroke: #E8E4DC;
+  --highlight-glow: rgba(255,200,0,0.15);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.frame { height: 100%; display: flex; flex-direction: column; }
+
+header {
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-bottom: 1px solid var(--panel-border);
+  flex-shrink: 0;
+  background: var(--bg);
+  z-index: 20;
+}
+
+.header-roundel { width: 36px; height: 36px; flex-shrink: 0; }
+.header-text { flex: 1; display: flex; flex-direction: column; gap: 1px; }
+.title { font-weight: 700; font-size: 16px; letter-spacing: 0.5px; line-height: 1.2; }
+.subtitle { color: var(--fg-muted); font-size: 11px; font-weight: 500; letter-spacing: 0.3px; }
+
+.search-wrap { position: relative; width: 220px; flex-shrink: 0; }
+.search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--fg-dim); pointer-events: none; }
+#searchInput { width: 100%; padding: 7px 10px 7px 30px; border: 1px solid var(--search-border); border-radius: 6px; background: var(--search-bg); color: var(--fg); font-family: var(--font-body); font-size: 12px; outline: none; transition: border-color var(--transition-fast); }
+#searchInput:focus { border-color: #003688; }
+#searchInput::placeholder { color: var(--fg-dim); }
+
+.header-controls { display: flex; gap: 4px; flex-shrink: 0; }
+.icon-btn { width: 32px; height: 32px; border: 1px solid var(--panel-border); border-radius: 6px; background: var(--search-bg); color: var(--fg); font-family: var(--font-body); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all var(--transition-fast); line-height: 1; }
+.icon-btn:hover { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+
+.legend { position: fixed; bottom: 14px; left: 24px; display: flex; gap: 16px; font-size: 11px; font-weight: 500; z-index: 15; background: var(--bg); padding: 8px 14px; border-radius: 8px; border: 1px solid var(--panel-border); }
+.legend-item { display: flex; align-items: center; gap: 7px; cursor: pointer; user-select: none; transition: opacity var(--transition-fast); }
+.legend-item.dimmed { opacity: 0.35; }
+.legend-swatch { width: 24px; height: 6px; border-radius: 3px; display: inline-block; }
+
+.controls { position: fixed; bottom: 14px; right: 24px; display: flex; gap: 2px; z-index: 15; }
+.controls button { width: 32px; height: 32px; border: 1px solid var(--panel-border); background: var(--search-bg); color: var(--fg); font-family: var(--font-body); font-size: 16px; cursor: pointer; transition: all var(--transition-fast); }
+.controls button:first-child { border-radius: 6px 0 0 6px; }
+.controls button:last-child { border-radius: 0 6px 6px 0; }
+.controls button:not(:first-child):not(:last-child) { border-radius: 0; }
+.controls button:hover { background: var(--fg); color: var(--bg); }
+
+.station-count { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); font-size: 10px; color: var(--fg-dim); z-index: 15; letter-spacing: 0.5px; }
+
+.map-wrap { flex: 1; overflow: hidden; position: relative; cursor: grab; }
+.map-wrap:active { cursor: grabbing; }
+#map { width: 100%; height: 100%; }
+
+.dot-grid { fill: var(--grid-color); }
+.map-line { fill: none; stroke-width: var(--line-width); stroke-linecap: round; stroke-linejoin: round; transition: opacity var(--transition-med), stroke-width var(--transition-med); }
+.map-line.dimmed { opacity: 0.12; }
+.map-line.highlighted { stroke-width: 12px; opacity: 1; }
+
+.station { cursor: pointer; outline: none; }
+.station:focus { outline: none; }
+.station-outer { transition: r var(--transition-fast), opacity var(--transition-med), transform var(--transition-fast); }
+.station-inner { fill: var(--station-fill); transition: r var(--transition-fast), opacity var(--transition-med); pointer-events: none; }
+.station:hover .station-outer, .station:focus .station-outer { filter: url(#glow); }
+.station.dimmed .station-outer, .station.dimmed .station-inner { opacity: 0.15; }
+.station.dimmed .station-label { opacity: 0.1; }
+.station.highlighted .station-outer { filter: url(#glow); }
+
+.terminal-rect { rx: 14; ry: 14; transition: opacity var(--transition-med); }
+.terminal-inner-rect { rx: 10; ry: 10; fill: var(--station-fill); transition: opacity var(--transition-med); pointer-events: none; }
+
+.station-label { font-size: 11px; font-weight: 600; fill: var(--fg); pointer-events: none; transition: opacity var(--transition-med); letter-spacing: 0.2px; }
+
+.tooltip { position: fixed; pointer-events: none; background: var(--tooltip-bg); color: var(--tooltip-fg); padding: 8px 12px; border-radius: 6px; font-size: 11px; line-height: 1.4; max-width: 260px; z-index: 50; opacity: 0; transition: opacity var(--transition-fast); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+.tooltip.show { opacity: 1; }
+.tooltip-name { font-weight: 600; margin-bottom: 2px; }
+.tooltip-role { opacity: 0.8; }
+
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); opacity: 0; visibility: hidden; transition: opacity var(--transition-med); z-index: 100; backdrop-filter: blur(2px); }
+.overlay.on { opacity: 1; visibility: visible; }
+
+.panel { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.96); background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 12px; width: 440px; max-width: 92vw; max-height: 80vh; overflow-y: auto; padding: 24px; opacity: 0; visibility: hidden; z-index: 101; transition: opacity var(--transition-med), transform var(--transition-med), visibility var(--transition-med); box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+.panel.on { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1); }
+
+.panel-head { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+.panel-roundel { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.panel-roundel-inner { width: 18px; height: 18px; border-radius: 50%; background: var(--panel-bg); }
+.panel-name { font-weight: 700; font-size: 16px; line-height: 1.2; }
+.panel-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase; background: var(--badge-bg); color: var(--badge-fg); margin-left: 8px; }
+.panel-path { color: var(--fg-muted); font-size: 11px; font-family: 'SF Mono', 'Consolas', monospace; margin-bottom: 16px; padding-left: 44px; }
+.panel-divider { border: none; border-top: 1px solid var(--panel-border); margin: 0 0 14px 0; }
+.panel-section-title { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--fg-muted); margin-bottom: 6px; }
+.panel-role { font-size: 13px; line-height: 1.6; margin-bottom: 14px; }
+.panel-details { font-size: 12px; line-height: 1.6; color: var(--fg-muted); margin-bottom: 16px; }
+.panel-conn { display: flex; flex-direction: column; gap: 6px; }
+.panel-conn-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.panel-conn-arrow { font-weight: 700; font-size: 14px; width: 20px; text-align: center; flex-shrink: 0; }
+.panel-conn-arrow.downstream { color: #007D32; }
+.panel-conn-arrow.upstream { color: #003688; }
+.panel-conn-name { color: var(--fg); font-weight: 500; }
+.panel-close { position: absolute; top: 16px; right: 16px; width: 28px; height: 28px; border: none; border-radius: 6px; background: transparent; color: var(--fg-muted); font-size: 18px; cursor: pointer; font-family: var(--font-body); display: flex; align-items: center; justify-content: center; transition: all var(--transition-fast); }
+.panel-close:hover { background: var(--badge-bg); color: var(--fg); }
+
+.export-toast { position: fixed; top: 20px; right: 20px; background: var(--tooltip-bg); color: var(--tooltip-fg); padding: 10px 16px; border-radius: 8px; font-size: 12px; font-weight: 500; z-index: 200; opacity: 0; transform: translateY(-10px); transition: all var(--transition-med); pointer-events: none; }
+.export-toast.show { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<script>
+const CONFIG = {
+  project: {
+    name: "PDF Voice Tool",
+    subtitle: "Streaming PDF-to-Audio Pipeline"
+  },
+
+  lines: {
+    frontend: { color: "#9B0058", label: "Frontend" },
+    api:      { color: "#003688", label: "API" },
+    extract:  { color: "#00A0E2", label: "Extract" },
+    enrich:   { color: "#007D32", label: "Enrich" },
+    tts:      { color: "#E87200", label: "TTS" },
+    stream:   { color: "#B36305", label: "Stream" }
+  },
+
+  stations: {
+    // Frontend Line
+    page: {
+      name: "page.tsx",
+      path: "app/page.tsx",
+      line: "frontend",
+      x: 100, y: 100,
+      role: "Main UI that orchestrates the entire user experience",
+      details: "Next.js App Router page. Manages upload state, processing status, and player rendering. Coordinates between Upload component and StreamingPlayer.",
+      type: "terminal",
+      feeds: ["upload", "streaming_player"],
+      fed_by: [],
+      badge: "entry point"
+    },
+    upload: {
+      name: "Upload.tsx",
+      path: "components/Upload.tsx",
+      line: "frontend",
+      x: 280, y: 100,
+      role: "Handles file selection via drag-drop or click",
+      details: "Validates file size (10MB prod, 250MB dev) and type. Posts to /api/upload, receives jobId. Triggers processing pipeline on success.",
+      type: "regular",
+      feeds: ["api_upload"],
+      fed_by: ["page"]
+    },
+    streaming_player: {
+      name: "StreamingPlayer.tsx",
+      path: "components/StreamingPlayer.tsx",
+      line: "frontend",
+      x: 480, y: 100,
+      role: "Real-time gapless audio player with progress visualization",
+      details: "Two alternating <audio> elements for zero-gap playback. Listens to SSE events, preloads next chunk while current plays. Canvas-based progress bar.",
+      type: "regular",
+      feeds: ["api_chunk"],
+      fed_by: ["page", "sse_helpers"]
+    },
+
+    // API Line
+    api_upload: {
+      name: "upload/route.ts",
+      path: "app/api/upload/route.ts",
+      line: "api",
+      x: 280, y: 240,
+      role: "Receives uploaded PDF and saves to temp storage",
+      details: "POST handler. Generates UUID jobId, validates file, writes to /tmp/{jobId}.pdf. Returns jobId for subsequent processing requests.",
+      type: "regular",
+      feeds: ["process_stream"],
+      fed_by: ["upload"]
+    },
+    process_stream: {
+      name: "process-stream/route.ts",
+      path: "app/api/process-stream/[id]/route.ts",
+      line: "api",
+      x: 480, y: 240,
+      role: "Main streaming pipeline that converts PDF to audio chunks",
+      details: "SSE endpoint. Orchestrates: OCR extraction, table/image narration, text cleaning, chunked TTS generation. Streams progress events in real-time.",
+      type: "interchange",
+      feeds: ["deepseek", "html_tables", "images", "cleaning", "tts_manager", "sse_helpers"],
+      fed_by: ["api_upload"],
+      badge: "hub"
+    },
+    api_chunk: {
+      name: "audio-chunk/route.ts",
+      path: "app/api/audio-chunk/[id]/[index]/route.ts",
+      line: "api",
+      x: 700, y: 240,
+      role: "Serves individual audio chunks for streaming playback",
+      details: "GET handler. Reads chunk from /tmp/{id}-chunks/{index}.mp3. Returns audio/mpeg stream with proper headers for gapless playback.",
+      type: "regular",
+      feeds: [],
+      fed_by: ["streaming_player", "chunk_manager"],
+      badge: "output"
+    },
+
+    // Extract Line
+    deepseek: {
+      name: "deepseek.ts",
+      path: "lib/deepseek.ts",
+      line: "extract",
+      x: 100, y: 380,
+      role: "Extracts text from PDF using OCR",
+      details: "Calls DeepSeek OCR API (FREE via alphaxiv.org). Returns markdown text + page count. Validates page limit (40 in prod). Handles timeout and retries.",
+      type: "terminal",
+      feeds: ["html_tables", "images"],
+      fed_by: ["process_stream"],
+      badge: "entry point"
+    },
+    html_tables: {
+      name: "html-tables.ts",
+      path: "lib/html-tables.ts",
+      line: "extract",
+      x: 280, y: 380,
+      role: "Finds and extracts HTML tables from the OCR output",
+      details: "Regex-based extraction: /<table>[\\s\\S]*?<\\/table>/gi. Captures 2 paragraphs before and 1 after as context. Returns HTMLTable objects with positions.",
+      type: "regular",
+      feeds: ["claude"],
+      fed_by: ["deepseek", "process_stream"]
+    },
+    images: {
+      name: "images.ts",
+      path: "lib/images.ts",
+      line: "extract",
+      x: 480, y: 380,
+      role: "Extracts images from PDF and generates captions",
+      details: "Uses pdfimages binary to extract PNGs. Calls DeepInfra Vision API with page context. Returns ImageNarration objects with page assignments.",
+      type: "regular",
+      feeds: ["cleaning"],
+      fed_by: ["deepseek", "deepinfra_llm"]
+    },
+
+    // Enrich Line
+    claude: {
+      name: "claude.ts",
+      path: "lib/claude.ts",
+      line: "enrich",
+      x: 280, y: 520,
+      role: "Converts HTML tables into natural spoken narrations",
+      details: "For each table: parses HTML rows, converts to Markdown, calls Claude via DeepInfra. Generates 2-4 sentence descriptions. 30s timeout per table.",
+      type: "regular",
+      feeds: ["cleaning"],
+      fed_by: ["html_tables", "deepinfra_llm"]
+    },
+    deepinfra_llm: {
+      name: "deepinfra-llm.ts",
+      path: "lib/deepinfra-llm.ts",
+      line: "enrich",
+      x: 480, y: 520,
+      role: "Unified LLM API client for vision and chat",
+      details: "Wraps DeepInfra API. Supports both chat completion (for tables) and vision (for images). Configurable model (deepseek-r1 default). Handles retries.",
+      type: "interchange",
+      feeds: ["claude", "images"],
+      fed_by: ["process_stream"]
+    },
+    cleaning: {
+      name: "cleaning.ts",
+      path: "lib/cleaning.ts",
+      line: "enrich",
+      x: 700, y: 520,
+      role: "Consolidates all content into clean narration text",
+      details: "Replaces tables with narrations. Injects image captions at page boundaries. Removes OCR artifacts, expands abbreviations. Fallback if result too short.",
+      type: "interchange",
+      feeds: ["tts_manager"],
+      fed_by: ["claude", "images", "process_stream"],
+      badge: "hub"
+    },
+
+    // TTS Line
+    tts_manager: {
+      name: "manager.ts",
+      path: "lib/tts/manager.ts",
+      line: "tts",
+      x: 280, y: 660,
+      role: "Selects TTS provider and handles failover",
+      details: "Priority chain: DeepInfra Kokoro ($0.62/M) → Orpheus ($15/M) → MiniMax ($30/M) → OpenAI ($30/M). Automatic fallback on failure. A/B testing support.",
+      type: "interchange",
+      feeds: ["tts_deepinfra", "tts_orpheus", "tts_minimax", "tts_openai"],
+      fed_by: ["cleaning", "process_stream"]
+    },
+    tts_deepinfra: {
+      name: "deepinfra.ts",
+      path: "lib/tts/providers/deepinfra.ts",
+      line: "tts",
+      x: 100, y: 780,
+      role: "Primary TTS using Kokoro model",
+      details: "Cheapest option at $0.62 per million characters. High quality voice synthesis. Returns MP3 buffer.",
+      type: "regular",
+      feeds: ["chunk_manager"],
+      fed_by: ["tts_manager"]
+    },
+    tts_orpheus: {
+      name: "orpheus.ts",
+      path: "lib/tts/providers/orpheus.ts",
+      line: "tts",
+      x: 280, y: 780,
+      role: "Fallback TTS via Together.ai",
+      details: "Orpheus model at $15 per million characters. Expressive voice with good prosody.",
+      type: "regular",
+      feeds: ["chunk_manager"],
+      fed_by: ["tts_manager"]
+    },
+    tts_minimax: {
+      name: "minimax.ts",
+      path: "lib/tts/providers/minimax.ts",
+      line: "tts",
+      x: 460, y: 780,
+      role: "Speech-02-Turbo TTS provider",
+      details: "MiniMax API at $30 per million characters. Fast synthesis with natural voice.",
+      type: "regular",
+      feeds: ["chunk_manager"],
+      fed_by: ["tts_manager"]
+    },
+    tts_openai: {
+      name: "openai.ts",
+      path: "lib/tts/providers/openai.ts",
+      line: "tts",
+      x: 640, y: 780,
+      role: "Final fallback using OpenAI TTS-1-HD",
+      details: "OpenAI API at $30 per million characters. Most reliable, highest quality voice.",
+      type: "regular",
+      feeds: ["chunk_manager"],
+      fed_by: ["tts_manager"]
+    },
+
+    // Stream Line
+    chunk_manager: {
+      name: "chunk-manager.ts",
+      path: "lib/streaming/chunk-manager.ts",
+      line: "stream",
+      x: 480, y: 660,
+      role: "Stores audio chunks and concatenates final output",
+      details: "Saves each chunk to /tmp/{id}-chunks/{index}.mp3. Uses ffmpeg to concatenate all chunks into {id}-final.mp3. Tracks chunk metadata.",
+      type: "regular",
+      feeds: ["api_chunk"],
+      fed_by: ["tts_deepinfra", "tts_orpheus", "tts_minimax", "tts_openai"]
+    },
+    sse_helpers: {
+      name: "sse-helpers.ts",
+      path: "lib/streaming/sse-helpers.ts",
+      line: "stream",
+      x: 700, y: 660,
+      role: "Encodes and sends Server-Sent Events to the client",
+      details: "SSE protocol helpers. Event types: extraction_start, chunk_ready, artwork_ready, complete, error. Base64 encodes audio for inline transmission.",
+      type: "regular",
+      feeds: ["streaming_player"],
+      fed_by: ["process_stream"],
+      badge: "output"
+    }
+  },
+
+  paths: [
+    // Frontend Line (horizontal top)
+    { line: "frontend", stations: ["page", "upload", "streaming_player"] },
+
+    // API Line (horizontal)
+    { line: "api", stations: ["api_upload", "process_stream", "api_chunk"] },
+
+    // Extract Line (horizontal)
+    { line: "extract", stations: ["deepseek", "html_tables", "images"] },
+
+    // Enrich Line (horizontal)
+    { line: "enrich", stations: ["claude", "deepinfra_llm", "cleaning"] },
+
+    // TTS Line (manager to providers)
+    { line: "tts", stations: ["tts_manager", "tts_deepinfra"] },
+    { line: "tts", stations: ["tts_manager", "tts_orpheus"] },
+    { line: "tts", stations: ["tts_manager", "tts_minimax"] },
+    { line: "tts", stations: ["tts_manager", "tts_openai"] },
+
+    // Stream Line
+    { line: "stream", stations: ["chunk_manager", "sse_helpers"] },
+
+    // Cross-line connections
+    { line: "frontend", stations: ["upload", "api_upload"], type: "branch" },
+    { line: "api", stations: ["process_stream", "deepseek"], type: "branch" },
+    { line: "api", stations: ["process_stream", "cleaning"], type: "branch" },
+    { line: "api", stations: ["process_stream", "sse_helpers"], type: "branch" },
+    { line: "extract", stations: ["html_tables", "claude"], type: "branch" },
+    { line: "extract", stations: ["images", "cleaning"], type: "branch" },
+    { line: "enrich", stations: ["deepinfra_llm", "images"], type: "branch" },
+    { line: "enrich", stations: ["cleaning", "tts_manager"], type: "branch" },
+    { line: "tts", stations: ["tts_manager", "chunk_manager"], type: "branch" },
+    { line: "stream", stations: ["chunk_manager", "api_chunk"], type: "branch" },
+    { line: "stream", stations: ["sse_helpers", "streaming_player"], type: "branch" }
+  ]
+};
+
+// ============================================================================
+// RENDERER
+// ============================================================================
+
+document.addEventListener('DOMContentLoaded', () => {
+  const { project, lines, stations, paths } = CONFIG;
+
+  let selectedStation = null;
+  let hiddenLines = new Set();
+  let searchQuery = '';
+  let theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+
+  function octiPath(x1, y1, x2, y2) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    if (Math.abs(dy) < 5) return `M ${x1},${y1} L ${x2},${y2}`;
+    if (Math.abs(dx) < 5) return `M ${x1},${y1} L ${x2},${y2}`;
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
+    const diag = Math.min(absDx, absDy);
+    if (absDx >= absDy) {
+      const horizLen = absDx - diag;
+      const midX = x1 + Math.sign(dx) * horizLen;
+      return `M ${x1},${y1} L ${midX},${y1} L ${x2},${y2}`;
+    } else {
+      const vertLen = absDy - diag;
+      const midY = y1 + Math.sign(dy) * vertLen;
+      return `M ${x1},${y1} L ${x1},${midY} L ${x2},${y2}`;
+    }
+  }
+
+  function generatePathD(stationIds) {
+    if (stationIds.length < 2) return '';
+    const points = stationIds.filter(id => stations[id]).map(id => ({ x: stations[id].x, y: stations[id].y }));
+    if (points.length < 2) return '';
+    let d = `M ${points[0].x},${points[0].y}`;
+    for (let i = 1; i < points.length; i++) {
+      const prev = points[i - 1];
+      const cur = points[i];
+      const segment = octiPath(prev.x, prev.y, cur.x, cur.y);
+      d += ' ' + segment.replace(/^M\s*[\d.]+,[\d.]+\s*/, '');
+    }
+    return d;
+  }
+
+  function findConnected(stationId) {
+    const upstream = new Set();
+    const downstream = new Set();
+    function traceUp(id) {
+      const s = stations[id];
+      if (!s) return;
+      (s.fed_by || []).forEach(depId => {
+        if (!upstream.has(depId)) { upstream.add(depId); traceUp(depId); }
+      });
+    }
+    function traceDown(id) {
+      const s = stations[id];
+      if (!s) return;
+      (s.feeds || []).forEach(depId => {
+        if (!downstream.has(depId)) { downstream.add(depId); traceDown(depId); }
+      });
+    }
+    traceUp(stationId);
+    traceDown(stationId);
+    return { upstream, downstream };
+  }
+
+  function stationLines(stationId) {
+    const result = new Set();
+    paths.forEach(p => { if (p.stations.includes(stationId)) result.add(p.line); });
+    return result;
+  }
+
+  function pathConnectsTo(pathDef, stationSet) {
+    return pathDef.stations.some(id => stationSet.has(id));
+  }
+
+  function computeLabelPos(id, s) {
+    let anchor = 'middle';
+    let lx = s.x;
+    let ly = s.y - (s.type === 'interchange' ? 24 : 20);
+    const others = Object.entries(stations).filter(([oid]) => oid !== id);
+    const tooCloseAbove = others.some(([, o]) => Math.abs(o.x - s.x) < 80 && o.y < s.y && o.y > s.y - 60);
+    const tooCloseBelow = others.some(([, o]) => Math.abs(o.x - s.x) < 80 && o.y > s.y && o.y < s.y + 60);
+    if (s.type === 'interchange') {
+      const tooCloseRight = others.some(([, o]) => Math.abs(o.y - s.y) < 30 && o.x > s.x && o.x < s.x + 120);
+      if (!tooCloseRight) { anchor = 'start'; lx = s.x + 22; ly = s.y + 4; }
+    } else if (tooCloseAbove && !tooCloseBelow) {
+      ly = s.y + (s.type === 'terminal' ? 36 : 28);
+    }
+    return { lx, ly, anchor };
+  }
+
+  function applyTheme() {
+    document.documentElement.setAttribute('data-theme', theme);
+    const btn = document.getElementById('themeBtn');
+    if (btn) btn.textContent = theme === 'dark' ? '\u2600' : '\u263E';
+  }
+
+  function render() {
+    const allX = Object.values(stations).map(s => s.x);
+    const allY = Object.values(stations).map(s => s.y);
+    const padding = 120;
+    const minX = Math.min(...allX) - padding;
+    const minY = Math.min(...allY) - padding;
+    const maxX = Math.max(...allX) + padding;
+    const maxY = Math.max(...allY) + padding;
+    const vbW = maxX - minX;
+    const vbH = maxY - minY;
+    const stationCount = Object.keys(stations).length;
+    const firstLineColor = Object.values(lines)[0]?.color || '#003688';
+
+    document.body.innerHTML = `
+      <div class="frame">
+        <header>
+          <svg class="header-roundel" viewBox="0 0 36 36">
+            <circle cx="18" cy="18" r="17" fill="${firstLineColor}" stroke="none"/>
+            <rect x="1" y="12.5" width="34" height="11" rx="5.5" fill="${firstLineColor}" stroke="white" stroke-width="2"/>
+            <text x="18" y="21" text-anchor="middle" fill="white" font-family="Inter, sans-serif" font-weight="700" font-size="8" letter-spacing="0.5">PV</text>
+          </svg>
+          <div class="header-text">
+            <span class="title">${project.name}</span>
+            <span class="subtitle">${project.subtitle}</span>
+          </div>
+          <div class="search-wrap">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="7" cy="7" r="5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/>
+            </svg>
+            <input type="text" id="searchInput" placeholder="Search stations..." autocomplete="off"/>
+          </div>
+          <div class="header-controls">
+            <button class="icon-btn" id="themeBtn" title="Toggle theme">${theme === 'dark' ? '\u2600' : '\u263E'}</button>
+            <button class="icon-btn" id="exportBtn" title="Export SVG">\u21E9</button>
+          </div>
+        </header>
+        <div class="legend" id="legend">
+          ${Object.entries(lines).map(([id, l]) => `<div class="legend-item" data-line="${id}"><span class="legend-swatch" style="background:${l.color}"></span><span>${l.label}</span></div>`).join('')}
+        </div>
+        <div class="controls">
+          <button onclick="zoomIn()" title="Zoom in">+</button>
+          <button onclick="resetView()" title="Reset view">\u25CB</button>
+          <button onclick="zoomOut()" title="Zoom out">\u2212</button>
+        </div>
+        <span class="station-count">${stationCount} stations</span>
+        <div class="map-wrap" id="mapWrap">
+          <svg id="map" viewBox="${minX} ${minY} ${vbW} ${vbH}">
+            <defs>
+              <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            </defs>
+            <pattern id="dotGrid" x="0" y="0" width="30" height="30" patternUnits="userSpaceOnUse"><circle cx="15" cy="15" r="0.8" class="dot-grid"/></pattern>
+            <rect x="${minX}" y="${minY}" width="${vbW}" height="${vbH}" fill="url(#dotGrid)"/>
+            <g id="viewport">
+              <g id="pathsGroup">
+                ${paths.map((p, i) => {
+                  const d = generatePathD(p.stations);
+                  const dashArray = p.type === 'branch' ? '8,6' : 'none';
+                  return `<path class="map-line" data-line="${p.line}" data-path-idx="${i}" style="stroke:${lines[p.line].color}; stroke-dasharray:${dashArray}" d="${d}"/>`;
+                }).join('\n')}
+              </g>
+              <g id="pulseGroup"></g>
+              <g id="stationsGroup">
+                ${Object.entries(stations).map(([id, s]) => {
+                  const line = lines[s.line];
+                  const label = computeLabelPos(id, s);
+                  const displayName = s.name.replace('.tsx', '').replace('.ts', '').replace('/route', '');
+                  if (s.type === 'terminal') {
+                    const w = 56, h = 28;
+                    return `<g class="station" data-id="${id}" tabindex="0" role="button" aria-label="${s.name}">
+                      <rect class="terminal-rect" x="${s.x - w/2}" y="${s.y - h/2}" width="${w}" height="${h}" fill="${line.color}" stroke="${line.color}" stroke-width="2"/>
+                      <rect class="terminal-inner-rect" x="${s.x - w/2 + 4}" y="${s.y - h/2 + 4}" width="${w - 8}" height="${h - 8}"/>
+                      <text class="station-label" x="${label.lx}" y="${label.ly}" text-anchor="${label.anchor}" style="font-size:10px; font-weight:700">${displayName}</text>
+                    </g>`;
+                  }
+                  if (s.type === 'interchange') {
+                    return `<g class="station interchange" data-id="${id}" tabindex="0" role="button" aria-label="${s.name}">
+                      <circle class="station-outer" cx="${s.x}" cy="${s.y}" r="15" fill="${line.color}" stroke="${line.color}" stroke-width="2"/>
+                      <circle class="station-inner" cx="${s.x}" cy="${s.y}" r="12" fill="var(--station-fill)"/>
+                      <circle cx="${s.x}" cy="${s.y}" r="8" fill="${line.color}" pointer-events="none"/>
+                      <text class="station-label" x="${label.lx}" y="${label.ly}" text-anchor="${label.anchor}">${displayName}</text>
+                    </g>`;
+                  }
+                  return `<g class="station" data-id="${id}" tabindex="0" role="button" aria-label="${s.name}">
+                    <circle class="station-outer" cx="${s.x}" cy="${s.y}" r="11" fill="${line.color}" stroke="${line.color}" stroke-width="2"/>
+                    <circle class="station-inner" cx="${s.x}" cy="${s.y}" r="6"/>
+                    <text class="station-label" x="${label.lx}" y="${label.ly}" text-anchor="${label.anchor}">${displayName}</text>
+                  </g>`;
+                }).join('\n')}
+              </g>
+            </g>
+          </svg>
+        </div>
+      </div>
+      <div class="tooltip" id="tooltip"><div class="tooltip-name" id="tooltipName"></div><div class="tooltip-role" id="tooltipRole"></div></div>
+      <div class="overlay" id="overlay"></div>
+      <div class="panel" id="panel">
+        <button class="panel-close" id="panelClose">\u00D7</button>
+        <div class="panel-head"><div class="panel-roundel" id="panelRoundel"><div class="panel-roundel-inner"></div></div><span class="panel-name" id="panelName"></span></div>
+        <div class="panel-path" id="panelPath"></div>
+        <hr class="panel-divider"/>
+        <div class="panel-section-title">What it does</div>
+        <div class="panel-role" id="panelRole"></div>
+        <div class="panel-section-title">Technical details</div>
+        <div class="panel-details" id="panelDetails"></div>
+        <hr class="panel-divider"/>
+        <div class="panel-section-title">Connections</div>
+        <div class="panel-conn" id="panelConn"></div>
+      </div>
+      <div class="export-toast" id="exportToast">SVG exported</div>
+    `;
+    applyTheme();
+    setupInteractions();
+  }
+
+  function setupInteractions() {
+    const svg = document.getElementById('map');
+    const vp = document.getElementById('viewport');
+    const mapWrap = document.getElementById('mapWrap');
+    const tooltip = document.getElementById('tooltip');
+
+    let vx = 0, vy = 0, vk = 1;
+    let isPanning = false, panStartX = 0, panStartY = 0, panStartVX = 0, panStartVY = 0;
+
+    function applyTransform(animate) {
+      if (animate) { vp.style.transition = 'transform 0.3s ease'; setTimeout(() => vp.style.transition = '', 350); }
+      vp.setAttribute('transform', `translate(${vx},${vy}) scale(${vk})`);
+    }
+
+    mapWrap.addEventListener('mousedown', e => {
+      if (e.target.closest('.station')) return;
+      isPanning = true; panStartX = e.clientX; panStartY = e.clientY; panStartVX = vx; panStartVY = vy;
+    });
+    document.addEventListener('mousemove', e => {
+      if (!isPanning) return;
+      const rect = svg.getBoundingClientRect();
+      const svgVB = svg.viewBox.baseVal;
+      vx = panStartVX + (e.clientX - panStartX) * svgVB.width / rect.width;
+      vy = panStartVY + (e.clientY - panStartY) * svgVB.height / rect.height;
+      applyTransform(false);
+    });
+    document.addEventListener('mouseup', () => isPanning = false);
+    mapWrap.addEventListener('wheel', e => {
+      e.preventDefault();
+      const rect = svg.getBoundingClientRect();
+      const svgVB = svg.viewBox.baseVal;
+      const mouseX = svgVB.x + (e.clientX - rect.left) / rect.width * svgVB.width;
+      const mouseY = svgVB.y + (e.clientY - rect.top) / rect.height * svgVB.height;
+      const oldK = vk;
+      vk = Math.max(0.3, Math.min(4, vk * (e.deltaY > 0 ? 0.92 : 1.08)));
+      vx = mouseX - (mouseX - vx) * (vk / oldK);
+      vy = mouseY - (mouseY - vy) * (vk / oldK);
+      applyTransform(false);
+    }, { passive: false });
+
+    window.zoomIn = () => { vk = Math.min(4, vk * 1.3); applyTransform(true); };
+    window.zoomOut = () => { vk = Math.max(0.3, vk * 0.77); applyTransform(true); };
+    window.resetView = () => { vx = 0; vy = 0; vk = 1; applyTransform(true); };
+
+    const stationEls = document.querySelectorAll('.station');
+
+    stationEls.forEach(el => {
+      el.addEventListener('mouseenter', () => {
+        if (document.getElementById('panel').classList.contains('on')) return;
+        const s = stations[el.dataset.id];
+        if (!s) return;
+        document.getElementById('tooltipName').textContent = s.name;
+        document.getElementById('tooltipRole').textContent = s.role;
+        tooltip.classList.add('show');
+      });
+      el.addEventListener('mousemove', e => {
+        tooltip.style.left = (e.clientX + 14) + 'px';
+        tooltip.style.top = (e.clientY - 10) + 'px';
+        const rect = tooltip.getBoundingClientRect();
+        if (rect.right > window.innerWidth - 10) tooltip.style.left = (e.clientX - rect.width - 14) + 'px';
+        if (rect.bottom > window.innerHeight - 10) tooltip.style.top = (e.clientY - rect.height - 10) + 'px';
+      });
+      el.addEventListener('mouseleave', () => tooltip.classList.remove('show'));
+      el.addEventListener('click', e => {
+        e.stopPropagation();
+        const id = el.dataset.id;
+        if (selectedStation === id) { openPanel(id); return; }
+        selectStation(id);
+      });
+    });
+
+    mapWrap.addEventListener('click', e => { if (!e.target.closest('.station')) clearSelection(); });
+
+    function selectStation(id) {
+      selectedStation = id;
+      const { upstream, downstream } = findConnected(id);
+      const connected = new Set([id, ...upstream, ...downstream]);
+      stationEls.forEach(el => {
+        if (connected.has(el.dataset.id)) { el.classList.remove('dimmed'); el.classList.add('highlighted'); }
+        else { el.classList.add('dimmed'); el.classList.remove('highlighted'); }
+      });
+      document.querySelectorAll('.map-line').forEach(pathEl => {
+        const pathDef = paths[parseInt(pathEl.dataset.pathIdx)];
+        if (pathConnectsTo(pathDef, connected)) { pathEl.classList.remove('dimmed'); pathEl.classList.add('highlighted'); }
+        else { pathEl.classList.add('dimmed'); pathEl.classList.remove('highlighted'); }
+      });
+      addPulseDots(connected);
+    }
+
+    function clearSelection() {
+      selectedStation = null;
+      stationEls.forEach(el => el.classList.remove('dimmed', 'highlighted'));
+      document.querySelectorAll('.map-line').forEach(p => p.classList.remove('dimmed', 'highlighted'));
+      document.getElementById('pulseGroup').innerHTML = '';
+    }
+
+    function addPulseDots(connected) {
+      const pulseGroup = document.getElementById('pulseGroup');
+      pulseGroup.innerHTML = '';
+      paths.forEach((p, i) => {
+        if (!pathConnectsTo(p, connected) || p.stations.length < 2) return;
+        const pathEl = document.querySelector(`.map-line[data-path-idx="${i}"]`);
+        if (!pathEl) return;
+        const d = pathEl.getAttribute('d');
+        const motionPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        motionPath.setAttribute('d', d); motionPath.setAttribute('id', `motion-${i}`);
+        motionPath.setAttribute('fill', 'none'); motionPath.setAttribute('stroke', 'none');
+        pulseGroup.appendChild(motionPath);
+        const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        dot.setAttribute('r', '4'); dot.setAttribute('fill', 'white'); dot.setAttribute('opacity', '0.9');
+        const animMotion = document.createElementNS('http://www.w3.org/2000/svg', 'animateMotion');
+        animMotion.setAttribute('dur', `${1.5 + Math.random() * 1.5}s`); animMotion.setAttribute('repeatCount', 'indefinite');
+        const mpath = document.createElementNS('http://www.w3.org/2000/svg', 'mpath');
+        mpath.setAttributeNS('http://www.w3.org/1999/xlink', 'href', `#motion-${i}`);
+        animMotion.appendChild(mpath); dot.appendChild(animMotion);
+        pulseGroup.appendChild(dot);
+      });
+    }
+
+    function openPanel(id) {
+      const s = stations[id];
+      if (!s) return;
+      const line = lines[s.line];
+      document.getElementById('panelRoundel').style.background = line.color;
+      document.getElementById('panelName').innerHTML = s.name + (s.badge ? `<span class="panel-badge">${s.badge}</span>` : '');
+      document.getElementById('panelPath').textContent = s.path;
+      document.getElementById('panelRole').textContent = s.role;
+      document.getElementById('panelDetails').textContent = s.details;
+      let connHtml = '';
+      (s.feeds || []).forEach(fid => { const fs = stations[fid]; if (fs) connHtml += `<div class="panel-conn-row"><span class="panel-conn-arrow downstream">\u2192</span><span class="panel-conn-name">${fs.name}</span></div>`; });
+      (s.fed_by || []).forEach(fid => { const fs = stations[fid]; if (fs) connHtml += `<div class="panel-conn-row"><span class="panel-conn-arrow upstream">\u2190</span><span class="panel-conn-name">${fs.name}</span></div>`; });
+      if (!connHtml) connHtml = '<div style="color:var(--fg-dim); font-size:12px">No direct connections</div>';
+      document.getElementById('panelConn').innerHTML = connHtml;
+      document.getElementById('overlay').classList.add('on');
+      document.getElementById('panel').classList.add('on');
+    }
+    window.openPanel = openPanel;
+
+    document.getElementById('overlay').addEventListener('click', closePanel);
+    document.getElementById('panelClose').addEventListener('click', closePanel);
+    function closePanel() {
+      document.getElementById('overlay').classList.remove('on');
+      document.getElementById('panel').classList.remove('on');
+    }
+
+    const searchInput = document.getElementById('searchInput');
+    searchInput.addEventListener('input', e => {
+      searchQuery = e.target.value.toLowerCase().trim();
+      if (!searchQuery) { stationEls.forEach(el => el.classList.remove('dimmed', 'highlighted')); document.querySelectorAll('.map-line').forEach(p => p.classList.remove('dimmed')); return; }
+      const matching = new Set();
+      Object.entries(stations).forEach(([id, s]) => { if (`${s.name} ${s.role} ${s.path} ${s.details}`.toLowerCase().includes(searchQuery)) matching.add(id); });
+      stationEls.forEach(el => { if (matching.has(el.dataset.id)) { el.classList.remove('dimmed'); el.classList.add('highlighted'); } else { el.classList.add('dimmed'); el.classList.remove('highlighted'); } });
+      document.querySelectorAll('.map-line').forEach(pathEl => { const pathDef = paths[parseInt(pathEl.dataset.pathIdx)]; pathEl.classList.toggle('dimmed', !pathConnectsTo(pathDef, matching)); });
+    });
+
+    document.querySelectorAll('.legend-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const lineId = el.dataset.line;
+        if (hiddenLines.has(lineId)) { hiddenLines.delete(lineId); el.classList.remove('dimmed'); }
+        else { hiddenLines.add(lineId); el.classList.add('dimmed'); }
+        document.querySelectorAll('.map-line').forEach(pathEl => { pathEl.style.display = hiddenLines.has(pathEl.dataset.line) ? 'none' : ''; });
+        stationEls.forEach(el => {
+          const sLines = stationLines(el.dataset.id);
+          el.style.display = [...sLines].every(l => hiddenLines.has(l)) ? 'none' : '';
+        });
+      });
+    });
+
+    document.getElementById('themeBtn').addEventListener('click', () => { theme = theme === 'dark' ? 'light' : 'dark'; applyTheme(); });
+
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      const svgEl = document.getElementById('map');
+      const clone = svgEl.cloneNode(true);
+      const styleEl = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+      styleEl.textContent = document.querySelector('style').textContent;
+      clone.prepend(styleEl);
+      clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      const blob = new Blob([new XMLSerializer().serializeToString(clone)], { type: 'image/svg+xml' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'pdf-voice-tool-subway-map.svg';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      const toast = document.getElementById('exportToast'); toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 2000);
+    });
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { if (document.getElementById('panel').classList.contains('on')) closePanel(); else { clearSelection(); searchInput.blur(); } }
+      if (e.key === '/' && document.activeElement !== searchInput) { e.preventDefault(); searchInput.focus(); }
+    });
+  }
+
+  render();
+});
+</script>
+
+</body>
+</html>
